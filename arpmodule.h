@@ -27,4 +27,6 @@ arp_header ARPRequest(uint8_t src_mac[6], uint8_t dst_mac[6],
                     uint8_t src_ip[4], uint8_t dst_ip[4]);
 arp_header ARPResponse();
 
+void dump_readable_packet(const arp_header *hdr);
+
 #endif

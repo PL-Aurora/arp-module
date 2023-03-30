@@ -1,5 +1,7 @@
-#include <unistd.h>
+#include <sys/socket.h>
 #include <linux/if_arp.h>
+
+#include <arpa/inet.h> // htons
 
 #include "arpmodule.h"
 
@@ -11,19 +13,13 @@ int main() {
 
     arp_header areq = ARPRequest(s_mac, d_mac, s_ip, d_ip);
 
-    char mac[20];
-    char ip[20]; 
 
-snprintf(mac, sizeof(mac), "%02x:%02x:%02x:%02x:%02x:%02x",
-         areq.src_mac[0], areq.src_mac[1], areq.src_mac[2], 
-         areq.src_mac[3], areq.src_mac[4], areq.src_mac[5]);
+    dump_readable_packet(&areq);
 
-snprintf(ip, sizeof(ip), "%d.%d.%d.%d",
-         areq.src_ip[0], areq.src_ip[1], areq.src_ip[2], 
-         areq.src_ip[3]);
+    int arp_socket;
 
-    printf("arp:\nhtype: %d, ptype: %d, mac_src: %s, ip_src: %s\n", 
-    areq.htype, areq.ptype, mac, ip);
+    // if(arp_socket = socket(AF_NETLINK))
+
     return 0;
 }
 
@@ -32,16 +28,12 @@ arp_header ARPRequest(uint8_t src_mac[6], uint8_t dst_mac[6],
     //inicjalizacja pakietu ARP dla ethernetu
 
     arp_header arp = {
-        .htype = ARPHRD_ETHER,
+        .htype = htons(ARPHRD_ETHER),
         .hlen = 6,
-        .ptype = 0x0800,  //IPv4
+        .ptype = htons(0x0800),  //IPv4
         .plen = 4,
-        .opcode = ARPOP_REQUEST
+        .opcode = htons(ARPOP_REQUEST)
     };
-    /* memset(arp.src_mac, 0, arp.hlen);
-    memset(arp.dst_mac, 0, arp.hlen);
-    memset(arp.src_ip, 0, arp.plen);
-    memset(arp.dst_ip, 0, arp.plen); */
 
     memcpy(arp.src_mac, src_mac, arp.hlen);
     memcpy(arp.dst_mac, dst_mac, arp.hlen);
@@ -49,4 +41,19 @@ arp_header ARPRequest(uint8_t src_mac[6], uint8_t dst_mac[6],
     memcpy(arp.dst_ip, dst_ip, arp.plen);
 
     return arp;
+}
+
+void dump_readable_packet(const arp_header *hdr) {
+    uint8_t src_mac_addr[18];
+    uint8_t src_ip_addr[16];
+
+    //MAC src
+    snprintf(src_mac_addr, sizeof(src_mac_addr), "%02x:%02x:%02x:%02x:%02x:%02x",
+    hdr->src_mac[0], hdr->src_mac[1], hdr->src_mac[2], 
+    hdr->src_mac[3], hdr->src_mac[4], hdr->src_mac[5]);
+
+    snprintf(src_ip_addr, sizeof(src_ip_addr), "%d.%d.%d.%d",
+    hdr->src_ip[0], hdr->src_ip[1], hdr->src_ip[2], hdr->src_ip[3]);
+
+    printf("ARP from: IP=%s, MAC=%s\n", src_ip_addr, src_mac_addr);
 }
