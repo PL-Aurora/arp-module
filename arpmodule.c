@@ -3,20 +3,20 @@
 
 #include <unistd.h>
 
-
-
 // #include <arpa/inet.h>
 // #include <sys/socket.h>
 
 
 #include "arpmodule.h"
 
+
+
 int main() {
     struct sockaddr_ll device;
-    char *interface = "enp0s25";
+    char *interface = "enp0s3";
     int bytes;
 
-    uint8_t s_mac[6] = {0x90, 0x1b, 0x0e, 0x85, 0x1d, 0x3b};
+    uint8_t s_mac[6] = {0x90, 0x1b, 0x0e, 0x85, 0x1d, 0x3b};  // mac 1
     // uint8_t d_mac[6] = {121, 121, 121, 121, 121, 121};
     uint8_t s_ip[4] = {192, 168, 0, 134};
     uint8_t d_ip[4] = {192, 168, 0, 108};
@@ -75,24 +75,24 @@ uint8_t *arpreq(uint8_t *src_mac, uint8_t *src_ip, uint8_t *dst_ip) {
     /* proto dla ARP to 0x0806 */
     eth_hdr.h_proto = htons(ETH_P_ARP);
  
+    /* stworzenie naglowka ARP */
     struct _arp_header arphdr = ARPRequest(src_mac, eth_hdr.h_dest, src_ip, dst_ip);     
 
-    // uint8_t *req = malloc(sizeof(struct _arp_header) + sizeof(eth_hdr));
+    uint8_t *req = malloc(sizeof(struct _arp_header) + sizeof(struct ethhdr));
 
-
-    // memcpy(req, &eth_hdr, sizeof(eth_hdr));
-    // memcpy(req + sizeof(eth_hdr), &arphdr, sizeof(arphdr));
-    uint8_t *req = malloc(sizeof(struct _arp_header));
-    memcpy(req, &arphdr, sizeof(arphdr));
+    memcpy(req, &eth_hdr, sizeof(eth_hdr));
+    memcpy(req + 14, &arphdr, sizeof(struct _arp_header));
+    // uint8_t *req = malloc(sizeof(struct _arp_header));
+    // memcpy(req, &arphdr, sizeof(arphdr));
     return req;
 }
 
-arp_header ARPRequest(uint8_t src_mac[6], uint8_t dst_mac[6],
-                    uint8_t src_ip[4], uint8_t dst_ip[4]) {
+arp_header ARPRequest(uint8_t *src_mac, uint8_t *dst_mac,
+                    uint8_t *src_ip, uint8_t *dst_ip) {
     //inicjalizacja pakietu ARP dla ethernetu
 
     arp_header arp = {
-        .eth_type = htons(ETH_P_ARP),
+        // .eth_type = htons(ETH_P_ARP),
         .htype = htons(ARPHRD_ETHER),
         .hlen = 6,
         .ptype = htons(0x0800),  //IPv4
@@ -100,12 +100,13 @@ arp_header ARPRequest(uint8_t src_mac[6], uint8_t dst_mac[6],
         .opcode = htons(ARPOP_REQUEST)
     };
 
-    memcpy(arp.eth_shost, src_mac, arp.hlen);
-    memcpy(arp.eth_dhost, dst_mac, arp.hlen);
+    // memcpy(arp.eth_shost, src_mac, arp.hlen);
+    // memcpy(arp.eth_dhost, dst_mac, arp.hlen);
 
     memcpy(arp.src_mac, src_mac, arp.hlen);
-    memcpy(arp.dst_mac, dst_mac, arp.hlen);
     memcpy(arp.src_ip, src_ip, arp.plen);
+
+    memcpy(arp.dst_mac, dst_mac, arp.hlen);
     memcpy(arp.dst_ip, dst_ip, arp.plen);
 
     return arp;
