@@ -44,7 +44,8 @@ int main() {
         exit (EXIT_FAILURE);
     }
     // for(int i = 0)
-    if ((bytes = sendto (arp_socket, arp_req, sizeof(struct _arp_header), 0, (struct sockaddr *) &device, sizeof (device))) <= 0) {
+    if ((bytes = sendto (arp_socket, arp_req, sizeof(struct arp_header) + sizeof(struct ethhdr),
+        0, (struct sockaddr *) &device, sizeof (device))) <= 0) {
         perror ("sendto() failed");
         exit (EXIT_FAILURE);
     } 
@@ -62,10 +63,10 @@ int main() {
 
 
 uint8_t *arpreq(uint8_t *src_mac, uint8_t *src_ip, uint8_t *dst_ip) {
+    struct ethhdr eth_hdr;
+    struct arp_header ahdr;
 
     /* pierwsze co, dodanie naglowka ethernet */
-    struct ethhdr eth_hdr;
-
     /* w ARP mac dest jest adresem broadcast */
     memset(eth_hdr.h_dest, 0xff, ETH_ALEN);
 
@@ -76,18 +77,24 @@ uint8_t *arpreq(uint8_t *src_mac, uint8_t *src_ip, uint8_t *dst_ip) {
     eth_hdr.h_proto = htons(ETH_P_ARP);
  
     /* stworzenie naglowka ARP */
-    struct _arp_header arphdr = ARPRequest(src_mac, eth_hdr.h_dest, src_ip, dst_ip);     
+    ahdr.htype = htons(ARPHRD_ETHER);
+    ahdr.hlen = ETH_ALEN;
+    ahdr.ptype = htons(0x0800);
+    ahdr.plen = 4;
+    ahdr.opcode = htons(ARPOP_REQUEST);
 
-    uint8_t *req = malloc(sizeof(struct _arp_header) + sizeof(struct ethhdr));
+
+
+    uint8_t *req = malloc(sizeof(struct arp_header) + sizeof(struct ethhdr));
 
     memcpy(req, &eth_hdr, sizeof(eth_hdr));
-    memcpy(req + 14, &arphdr, sizeof(struct _arp_header));
+    // memcpy(req + 14, &arphdr, sizeof(struct _arp_header));
     // uint8_t *req = malloc(sizeof(struct _arp_header));
     // memcpy(req, &arphdr, sizeof(arphdr));
     return req;
 }
 
-arp_header ARPRequest(uint8_t *src_mac, uint8_t *dst_mac,
+/* arp_header ARPRequest(uint8_t *src_mac, uint8_t *dst_mac,
                     uint8_t *src_ip, uint8_t *dst_ip) {
     //inicjalizacja pakietu ARP dla ethernetu
 
@@ -110,9 +117,9 @@ arp_header ARPRequest(uint8_t *src_mac, uint8_t *dst_mac,
     memcpy(arp.dst_ip, dst_ip, arp.plen);
 
     return arp;
-}
+} */
 
-void dump_readable_packet(const arp_header *hdr) {
+void dump_readable_packet(const struct arp_header *hdr) {
     uint8_t src_mac_addr[18];
     uint8_t src_ip_addr[16];
 
