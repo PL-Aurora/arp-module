@@ -22,7 +22,6 @@
 #include <net/if.h>           // struct ifreq
 #include <linux/if_ether.h>   // ETH_P_ARP = 0x0806
 #include <linux/if_packet.h>  // struct sockaddr_ll (see man 7 packet)
-#include <net/ethernet.h>
 
 #define ARPHRD_ETHER 1
 
@@ -30,11 +29,7 @@
 #define	ARPOP_REPLY	2
 
 
-struct _arp_header {
-    // uint8_t eth_dhost[ETH_ALEN];
-    // uint8_t eth_shost[ETH_ALEN];
-    // uint16_t eth_type;
-
+struct arp_header {
     uint16_t htype; //hardware type, for ethernet is 1
     uint16_t ptype; //protocol of higher layer
     uint8_t hlen; //hardware address len, for ether 6 (MAC addr)
@@ -47,14 +42,16 @@ struct _arp_header {
     uint8_t dst_ip[4];
 };
 
-typedef struct _arp_header arp_header;
 
-arp_header ARPRequest(uint8_t *src_mac, uint8_t *dst_mac,
+/* arp_header ARPRequest(uint8_t *src_mac, uint8_t *dst_mac,
                     uint8_t *src_ip, uint8_t *dst_ip);
-arp_header ARPResponse();
+arp_header ARPResponse(); */
+
+struct ethhdr stdethhdr(uint8_t *src_mac);
 
 uint8_t *arpreq(uint8_t *src_mac, uint8_t *src_ip, uint8_t *dst_ip);
 
-void dump_readable_packet(const arp_header *hdr);
+
+void dump_readable_packet(const struct arp_header *hdr);
 
 #endif
