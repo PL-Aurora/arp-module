@@ -19,7 +19,7 @@ int main() {
     uint8_t s_mac[6] = {0x90, 0x1b, 0x0e, 0x85, 0x1d, 0x3b};  // mac 1
     // uint8_t d_mac[6] = {121, 121, 121, 121, 121, 121};
     uint8_t s_ip[4] = {192, 168, 0, 134};
-    uint8_t d_ip[4] = {192, 168, 0, 108};
+    uint8_t d_ip[4] = {192, 168, 0, 1};
 
     // arp_header areq = ARPRequest(s_mac, s_ip, d_ip);
 
@@ -60,6 +60,41 @@ int main() {
     return 0;
 }
 
+struct ethhdr stdethhdr(uint8_t *src_mac) {
+    struct ethhdr hdr;
+    /* w ARP mac dest jest adresem broadcast */
+    memset(hdr.h_dest, 0xff, ETH_ALEN);
+
+    /* mac src to mac maszyny */
+    memcpy(hdr.h_source, src_mac, ETH_ALEN);
+
+    /* proto dla ARP to 0x0806 */
+    hdr.h_proto = htons(ETH_P_ARP);
+    return hdr;
+}
+
+struct arp_header stdarphdr(uint8_t *src_mac, uint8_t *src_ip, uint8_t *dst_ip) {
+    struct arp_header ahdr;
+
+    /* htype dla ethernetu to 1 */
+    ahdr.htype = htons(ARPHRD_ETHER);
+    ahdr.hlen = ETH_ALEN;
+
+    /* proto dla ramki ARP to IPv4 (0x0800) */
+    ahdr.ptype = htons(0x0800);
+    ahdr.plen = 4;
+
+    /* arp request = 1, response = 2 */
+    ahdr.opcode = htons(ARPOP_REQUEST);
+
+    memcpy(ahdr.src_mac, src_mac, ahdr.hlen);
+    memcpy(ahdr.src_ip, src_ip, ahdr.plen);
+
+    memset(ahdr.dst_mac, 0xff, ahdr.hlen);
+    memcpy(ahdr.dst_ip, dst_ip, ahdr.plen);
+
+    return ahdr;
+}
 
 
 uint8_t *arpreq(uint8_t *src_mac, uint8_t *src_ip, uint8_t *dst_ip) {
@@ -67,57 +102,19 @@ uint8_t *arpreq(uint8_t *src_mac, uint8_t *src_ip, uint8_t *dst_ip) {
     struct arp_header ahdr;
 
     /* pierwsze co, dodanie naglowka ethernet */
-    /* w ARP mac dest jest adresem broadcast */
-    memset(eth_hdr.h_dest, 0xff, ETH_ALEN);
-
-    /* mac src to mac maszyny */
-    memcpy(eth_hdr.h_source, src_mac, ETH_ALEN);
-
-    /* proto dla ARP to 0x0806 */
-    eth_hdr.h_proto = htons(ETH_P_ARP);
+    eth_hdr = stdethhdr(src_mac);
  
     /* stworzenie naglowka ARP */
-    ahdr.htype = htons(ARPHRD_ETHER);
-    ahdr.hlen = ETH_ALEN;
-    ahdr.ptype = htons(0x0800);
-    ahdr.plen = 4;
-    ahdr.opcode = htons(ARPOP_REQUEST);
-
-
+    ahdr = stdarphdr(src_mac, src_ip, dst_ip);
 
     uint8_t *req = malloc(sizeof(struct arp_header) + sizeof(struct ethhdr));
 
-    memcpy(req, &eth_hdr, sizeof(eth_hdr));
-    // memcpy(req + 14, &arphdr, sizeof(struct _arp_header));
-    // uint8_t *req = malloc(sizeof(struct _arp_header));
-    // memcpy(req, &arphdr, sizeof(arphdr));
+    /* skopiowanie struktur bo bufora do wyslania */
+    memcpy(req, &eth_hdr, sizeof(struct ethhdr));
+    memcpy(req + 14, &ahdr, sizeof(struct arp_header));
+    
     return req;
 }
-
-/* arp_header ARPRequest(uint8_t *src_mac, uint8_t *dst_mac,
-                    uint8_t *src_ip, uint8_t *dst_ip) {
-    //inicjalizacja pakietu ARP dla ethernetu
-
-    arp_header arp = {
-        // .eth_type = htons(ETH_P_ARP),
-        .htype = htons(ARPHRD_ETHER),
-        .hlen = 6,
-        .ptype = htons(0x0800),  //IPv4
-        .plen = 4,
-        .opcode = htons(ARPOP_REQUEST)
-    };
-
-    // memcpy(arp.eth_shost, src_mac, arp.hlen);
-    // memcpy(arp.eth_dhost, dst_mac, arp.hlen);
-
-    memcpy(arp.src_mac, src_mac, arp.hlen);
-    memcpy(arp.src_ip, src_ip, arp.plen);
-
-    memcpy(arp.dst_mac, dst_mac, arp.hlen);
-    memcpy(arp.dst_ip, dst_ip, arp.plen);
-
-    return arp;
-} */
 
 void dump_readable_packet(const struct arp_header *hdr) {
     uint8_t src_mac_addr[18];

@@ -43,11 +43,8 @@ struct arp_header {
 };
 
 
-/* arp_header ARPRequest(uint8_t *src_mac, uint8_t *dst_mac,
-                    uint8_t *src_ip, uint8_t *dst_ip);
-arp_header ARPResponse(); */
-
 struct ethhdr stdethhdr(uint8_t *src_mac);
+struct arp_header stdarphdr(uint8_t *src_mac, uint8_t *src_ip, uint8_t *dst_ip);
 
 uint8_t *arpreq(uint8_t *src_mac, uint8_t *src_ip, uint8_t *dst_ip);
 
