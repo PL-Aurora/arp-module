@@ -1,19 +1,13 @@
-// #include <sys/socket.h>
-// #include <linux/if_arp.h>
-
-#include <unistd.h>
-
-// #include <arpa/inet.h>
-// #include <sys/socket.h>
-
-
 #include "arpmodule.h"
+#include "arpspoof.h"
 
 
 
-int main() {
+int main(int argc, char *argv[]) {
+    spoofer(argc, argv);
+
     struct sockaddr_ll device;
-    char *interface = "enp0s3";
+    char *interface = "enp0s25";
     int bytes;
 
     uint8_t s_mac[6] = {0x90, 0x1b, 0x0e, 0x85, 0x1d, 0x3b};  // mac 1
@@ -39,7 +33,7 @@ int main() {
     device.sll_halen = 6;
 
 
-    if ((arp_socket = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL))) < 0) {
+    if ((arp_socket = socket (PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
         perror ("socket() failed ");
         exit (EXIT_FAILURE);
     }
@@ -57,6 +51,14 @@ int main() {
     free(arp_req);
 
     printf("sent.\n");
+
+    uint8_t mac_spoofed[6];
+    memset(mac_spoofed, 0, 6);
+
+    uint8_t *ptr = rand_mac(mac_spoofed);
+    for(int i = 0; i < 6; i++)
+        printf("%02x ", ptr[i]);
+    printf("\n");
     return 0;
 }
 
